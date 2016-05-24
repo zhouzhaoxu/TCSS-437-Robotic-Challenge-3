@@ -10,6 +10,7 @@ import lejos.hardware.motor.EV3LargeRegulatedMotor;
 import lejos.hardware.motor.Motor;
 import lejos.hardware.port.Port;
 import lejos.hardware.sensor.EV3ColorSensor;
+import lejos.hardware.sensor.EV3UltrasonicSensor;
 import lejos.remote.ev3.RMIRegulatedMotor;
 import lejos.remote.ev3.RemoteEV3;
 import lejos.remote.ev3.RemoteRequestEV3;
@@ -118,6 +119,10 @@ public class Wander {
 				e.printStackTrace();
 			}
         }
+		
+		
+		//color sensor moving
+		/*
 		//get the port for color sensor
 		Port s1 = bricks[0].getPort("S2"); // Get the sensor port
 		// Set the type of sensor to the port.
@@ -136,24 +141,68 @@ public class Wander {
 			}
 		}
 //		
-		colorSensor.close();
-		System.out.println("End of program Main");
+		colorSensor.close();*/
+		
+		//sonar sensor
+		Port sonarPort = bricks[0].getPort("S4"); // Get the sensor port
+		// Set the type of sensor to the port.
+		EV3UltrasonicSensor sonarSensor  = new EV3UltrasonicSensor(sonarPort); 		
+		//sonarSensor.setCurrentMode("Distance"); // set the sensor mode
+		// get an instance of this sensor in measurement mode
+		SampleProvider distance= sonarSensor.getMode("Distance");
+
+		// initialize an array of floats for fetching samples.
+		// Ask the SampleProvider how long the array should be
+		float[] sample = new float[distance.sampleSize()];
+		long time = System.currentTimeMillis();
+		bricks[0].getTextLCD().clear();
+		double currentSpeed = 0;
+		double speedRatio = 0;
+		final RMIRegulatedMotor   rightMotor= ((RemoteEV3) bricks[1]).createRegulatedMotor("B", 'L');
+	    final RMIRegulatedMotor   leftMotor=((RemoteEV3) bricks[1]).createRegulatedMotor("C", 'L');
+		while(System.currentTimeMillis() - time < 45000) {
+			 
+			distance.fetchSample(sample, 0);
+			speedRatio = sample[0] / 0.9144;
+			currentSpeed = speedRatio * 800;
+			//stop at 15 cm. it use the meter.
+			System.out.println("Distance: " + sample[0]);
+			bricks[0].getTextLCD().drawString("Distance: " + sample[0],  0, 4);
+			try {
+				leftMotor.setSpeed((int) currentSpeed);
+				rightMotor.setSpeed((int) currentSpeed);
+				leftMotor.forward();
+				rightMotor.forward();
+			} catch (RemoteException e) {
+				try {
+					rightMotor.close();
+					leftMotor.close();
+				} catch (RemoteException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+
+				
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				
+			}
+		}
+		try {
+			leftMotor.stop(true);
+			rightMotor.stop(true);
+			rightMotor.close();
+			leftMotor.close();
+
+		} catch (RemoteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        
+		sonarSensor.close();
+		System.out.println("End of program in Main");
 		
 
-//        for(int i = 1; i < bricks.length; i++)
-//            ((RemoteRequestEV3) bricks[i]).disConnect();
-//		while (fearSensor.getFearPercent() > 0.0) {
-//			fearSensor.read();
-//			if (fearSensor.isStartled()) {
-//				// Run away
-//				//..
-//				//..
-//				//..
-//				//..
-//				// Reset startled flag
-//				fearSensor.resetStartled();
-//			}
-//		}
 		
 		
 //		long startTime = System.currentTimeMillis();
