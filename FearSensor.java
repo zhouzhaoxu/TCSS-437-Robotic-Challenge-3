@@ -12,7 +12,8 @@ class FearSensor extends AbstractFilter {
 		private long lastFearTime;
 		private Timer fearResetTimer;
 		private boolean isStartled;
-
+		
+		//source is the port
 		public FearSensor(SampleProvider source) {
 			super(source);
 			isStartled = false;
@@ -25,11 +26,11 @@ class FearSensor extends AbstractFilter {
 		
 		public float read() {
 			super.fetchSample(sample, 0);
-			if (sample[0] >= FEAR_THRESHOLD && fearCount > 0) {
+			if (sample[0] >= FEAR_THRESHOLD && fearCount > 0 && !isStartled) {
 				isStartled = true;
 				fearCount--;
 				lastFearTime = System.currentTimeMillis();
-			} else {
+			} else if(sample[0] < FEAR_THRESHOLD){
 				isStartled = false;
 			}
 			return sample[0];
@@ -50,7 +51,7 @@ class FearSensor extends AbstractFilter {
 		private class MyTimerListener implements TimerListener {
 			@Override
 			public void timedOut() {
-				System.out.println("Checking if we need to reset fear.");
+//				System.out.println("Checking if we need to reset fear.");
 				if (System.currentTimeMillis() - lastFearTime >= FEAR_RESET_TIME) {
 					if (fearCount < 4) {
 						fearCount++;
