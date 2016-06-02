@@ -4,11 +4,11 @@ import lejos.utility.Timer;
 import lejos.utility.TimerListener;
 
 class FearSensor extends AbstractFilter {
-		private static final int MAX_FEAR_ENCOUNTERS = 4;
-		private static final float FEAR_THRESHOLD = (float) 0.5; // Some made up value. Needs testing.
+		private static final float MAX_FEAR_ENCOUNTERS = 4;
+		private static final float FEAR_THRESHOLD = (float) 0.45; // Some made up value. Needs testing.
 		private static final int FEAR_RESET_TIME = 60 * 1000; // 60 seconds
 		private float[] sample; // the readings from the sensor
-		private int fearCount;
+		private float fearCount;
 		private long lastFearTime;
 		private Timer fearResetTimer;
 		private boolean isStartled;
@@ -30,8 +30,6 @@ class FearSensor extends AbstractFilter {
 				isStartled = true;
 				fearCount--;
 				lastFearTime = System.currentTimeMillis();
-			} else if(sample[0] < FEAR_THRESHOLD){
-				isStartled = false;
 			}
 			return sample[0];
 		}
@@ -40,12 +38,68 @@ class FearSensor extends AbstractFilter {
 			return (fearCount / MAX_FEAR_ENCOUNTERS);
 		}
 		
+		public float getFearCounter() {
+			return fearCount;
+		}
+		
 		public boolean isStartled() {
 			return isStartled;
 		}
 		
 		public void resetStartled() {
 			isStartled = false;
+		}
+		
+		private Timer runTimer;
+		private RunningTimerListener runTimerListener;
+		public void startRunningTimer(int time) {
+			runTimerListener = new RunningTimerListener(time);
+			runTimer = new Timer(1, runTimerListener);
+		}
+		public void stopRunningTimer() {
+			if (runTimer != null) runTimer.stop();
+		}
+		public void resumeRunningTimer() {
+			if (runTimer != null) runTimer.start();
+		}
+		public boolean isRunFinish() {
+			if (runTimerListener != null) {
+				return runTimerListener.getRunTimeFinish();
+			}
+			return true;
+		}
+		
+		public int getRemainingTime() {
+			if (runTimerListener != null) return runTimerListener.remainingTime();
+			return -1;
+		}
+		
+		private class RunningTimerListener implements TimerListener {
+			private int totalTime;
+			private boolean runTimeFinish;
+			
+			public RunningTimerListener(int totalTime) {
+				this.totalTime = totalTime;
+				this.runTimeFinish = false;
+			}
+
+			@Override
+			public void timedOut() {
+				totalTime--;
+				if (totalTime <= 0) {
+					resetStartled();
+					runTimeFinish = true;
+					runTimer.stop();
+				}
+			}
+			
+			public int remainingTime() {
+				return totalTime;
+			}
+			
+			public boolean getRunTimeFinish() {
+				return runTimeFinish;
+			}
 		}
 		
 		private class MyTimerListener implements TimerListener {
